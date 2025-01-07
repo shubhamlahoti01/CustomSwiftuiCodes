@@ -1,0 +1,116 @@
+//  Created by Shubham Lahoti on 06/01/25.
+
+import SwiftUI
+import Foundation
+
+
+struct ContentView: View {
+    @State var otpString: String = ""
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("OTP Input View with auto fill from messaging")
+                    .multilineTextAlignment(.leading)
+                    .font(.title)
+                OTPTextFieldView(otpString: $otpString)
+                Spacer()
+            }
+        }
+    }
+}
+
+struct OTPTextFieldView: View {
+    @Binding var otpString: String
+    @FocusState private var isKeyboardShowing: Bool
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(0..<6, id: \.self) { index in
+                OTPTextBox(index)
+            }
+        }
+        .background {
+            TextField("", text: $otpString.limit(6))
+                .keyboardType(.numberPad)
+                .textContentType(.oneTimeCode)
+                .frame(width: 1, height: 1)
+                .opacity(0.001)
+                .blendMode(.screen)
+                .focused($isKeyboardShowing)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isKeyboardShowing = true
+        }
+        .padding(.bottom, 20)
+        .padding(.top, 10)
+        .toolbar {
+            ToolbarItem(placement: .keyboard) {
+                Button {
+                    isKeyboardShowing = false
+                } label: {
+                    Text("Done")
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    func OTPTextBox(_ index: Int) -> some View {
+        ZStack {
+            if otpString.count > index {
+                let startIndex = otpString.startIndex
+                let charIndex = otpString.index(startIndex, offsetBy: index)
+                let charToString = String(otpString[charIndex])
+                Text(charToString)
+                    .font(.system(size: 24, weight: .bold))
+            } else {
+                Text(" ")
+            }
+        }
+        .frame(width: 44, height: 48)
+        .background {
+            let status = (isKeyboardShowing && otpString.count == index)
+            ZStack {
+                if status {
+                    Color.white
+                } else {
+                    AppColor.cream.color
+                }
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(status ? .black : AppColor.cream.color, lineWidth: status ? 5 : 0)
+                    .animation(.easeInOut(duration: 0.2), value: status)
+                    .overlay {
+                        if status {
+                            Divider()
+                                .foregroundColor(.black)
+                                .frame(width: 2, height: 28)
+                                .background(.black)
+                                .offset(x: -12)
+                        } else {
+                            EmptyView()
+                        }
+                        
+                    }
+            }
+            .cornerRadius(12)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+#Preview {
+    OTPTextFieldView(otpString: .constant(""))
+}
+
+extension Binding where Value == String {
+    func limit(_ len: Int) -> Self {
+        if self.wrappedValue.count > len {
+            DispatchQueue.main.async {
+                self.wrappedValue = String(self.wrappedValue.prefix(len))
+            }
+        }
+        return self
+    }
+}
